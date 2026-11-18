@@ -164,6 +164,8 @@ button{
 
     display:flex;
 
+    flex-direction:column;
+
     justify-content:center;
 
     align-items:center;
@@ -176,6 +178,17 @@ button{
 
     user-select:none;
 
+    position: relative;
+
+}
+
+.lesson-badge {
+    position: absolute;
+    top: 15px;
+    left: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    opacity: 0.7;
 }
 
 .word{
@@ -245,7 +258,7 @@ button{
         class="card"
         onclick="flipCard()"
     >
-
+        <div id="lessonBadge" class="lesson-badge"></div>
         <div
             id="cardText"
             class="word"
@@ -255,7 +268,7 @@ button{
 
     </div>
 
-    <div class="controls">
+    <div id="actionControls" class="controls">
 
         <button
             class="again"
@@ -292,6 +305,7 @@ let showingAnswer = false;
 
 let known = 0;
 let reviewed = 0;
+let totalSessionCards = 0;
 
 function shuffle(array){
 
@@ -542,6 +556,7 @@ function startSession(){
     currentIndex = 0;
     known = 0;
     reviewed = 0;
+    totalSessionCards = cards.length;
 
     showingAnswer = false;
 
@@ -553,49 +568,65 @@ function startSession(){
         "hidden"
     );
 
+    document
+    .getElementById(
+        "actionControls"
+    )
+    .style.display = "flex";
+
     renderCard();
 }
 
 function renderCard(){
 
-    if(cards.length===0){
+    if(cards.length === 0 || currentIndex >= cards.length){
+
+        document
+        .getElementById(
+            "lessonBadge"
+        )
+        .textContent = "";
 
         document
         .getElementById(
             "cardText"
         )
         .textContent =
-        "No cards found.";
+        "🎉 Session Complete! All cards reviewed and known.";
 
+        document
+        .getElementById(
+            "actionControls"
+        )
+        .style.display = "none";
+
+        updateStats();
         return;
     }
 
-    if(
-        currentIndex >= cards.length
-    ){
-
-        shuffle(cards);
-
-        currentIndex = 0;
-
-    }
-
     showingAnswer = false;
+
+    const currentCard = cards[currentIndex];
+
+    document
+    .getElementById(
+        "lessonBadge"
+    )
+    .textContent = "Lesson " + currentCard.lesson;
 
     document
     .getElementById(
         "cardText"
     )
     .textContent =
-    cards[currentIndex]
-    .albanian;
+    currentCard.albanian;
 
     updateStats();
 }
 
 function flipCard(){
 
-    if(cards.length===0) return;
+    if(cards.length === 0 || currentIndex >= cards.length) return;
 
     const card =
         cards[currentIndex];
@@ -628,7 +659,6 @@ function knowCard(event){
 
     known++;
     reviewed++;
-
     currentIndex++;
 
     renderCard();
@@ -640,6 +670,7 @@ function studyAgain(event){
 
     reviewed++;
 
+    // Push the missed card to the back of the queue so it reappears later
     cards.push(
         cards[currentIndex]
     );
@@ -666,8 +697,8 @@ function updateStats(){
     )
     .innerHTML =
 
-    "Cards: " +
-    cards.length +
+    "Total Unique Cards: " +
+    totalSessionCards +
 
     "<br>" +
 
