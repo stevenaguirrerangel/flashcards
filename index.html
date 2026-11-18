@@ -435,10 +435,10 @@ function populateLessons(){
     )];
 
     if(lessons.length === 0){
-        dropdown.parentElement.style.display = "none";
+        dropdown.style.display = "none";
         return;
     } else {
-        dropdown.parentElement.style.display = "block";
+        dropdown.style.display = "block";
     }
 
     lessons.sort(
@@ -544,7 +544,7 @@ function startSession(){
         .value;
 
     if(
-        lesson === "all"
+        lesson === "all" || document.getElementById("lessonFilter").style.display === "none"
     ){
 
         cards =
