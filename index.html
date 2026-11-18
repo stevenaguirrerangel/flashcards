@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSV Flashcards</title>
+<style>
+:root{
+    --bg:#f5f7fb;
+    --card:#ffffff;
+    --text:#1f2937;
+    --accent:#2563eb;
+    --success:#16a34a;
+    --danger:#dc2626;
+    --border:#d1d5db;
+}
+@media (prefers-color-scheme: dark){
+    :root{
+        --bg:#111827;
+        --card:#1f2937;
+        --text:#f9fafb;
+        --border:#374151;
+    }
+}
+*{
+    box-sizing:border-box;
+}
+body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    display:flex;
+    justify-content:center;
+    padding:20px;
+}
+.container{
+    width:100%;
+    max-width:700px;
+}
+h1{
+    text-align:center;
+}
+.upload-section{
+    background:var(--card);
+    padding:20px;
+    border-radius:12px;
+    border:1px solid var(--border);
+    margin-bottom:20px;
+}
+.card{
+    background:var(--card);
+    border:2px solid var(--border);
+    border-radius:16px;
+    padding:40px 20px;
+    min-height:220px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    cursor:pointer;
+    user-select:none;
+    transition:.2s;
+}
+.card:hover{
+    transform:scale(1.01);
+}
+.term{
+    font-size:2rem;
+    font-weight:600;
+}
+.controls{
+    display:flex;
+    gap:10px;
+    margin-top:15px;
+}
+button{
+    flex:1;
+    border:none;
+    border-radius:10px;
+    padding:14px;
+    font-size:1rem;
+    cursor:pointer;
+}
+.know{
+    background:var(--success);
+    color:white;
+}
+.again{
+    background:var(--danger);
+    color:white;
+}
+.secondary{
+    background:var(--accent);
+    color:white;
+}
+.stats{
+    margin-top:15px;
+    text-align:center;
+    font-weight:600;
+}
+.hidden{
+    display:none;
+}
+.mode-select{
+    margin-top:15px;
+}
+select{
+    width:100%;
+    padding:10px;
+    border-radius:8px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>📚 CSV Flashcards</h1>
+
+<div class="upload-section">
+    <input type="file" id="csvFile" accept=".csv">
+
+    <div class="mode-select">
+        <select id="mode">
+            <option value="en-al">English → Albanian</option>
+            <option value="al-en">Albanian → English</option>
+            <option value="random">Random Direction</option>
+        </select>
+    </div>
+
+    <button class="secondary" style="margin-top:10px" onclick="loadCSV()">
+        Load Flashcards
+    </button>
+</div>
+
+<div id="studyArea" class="hidden">
+
+    <div class="card" onclick="flipCard()">
+        <div id="cardText" class="term">Loading...</div>
+    </div>
+
+    <div class="controls">
+        <button class="again" onclick="studyAgain(event)">
+            ❌ Study Again
+        </button>
+
+        <button class="know" onclick="knowCard(event)">
+            ✅ Know It
+        </button>
+    </div>
+
+    <div class="stats">
+        <div id="progress"></div>
+    </div>
+
+</div>
+
+</div>
+
+<script>
+let cards = [];
+let currentIndex = 0;
+let showingBack = false;
+
+let known = 0;
+let reviewed = 0;
+
+function shuffle(array){
+    for(let i=array.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [array[i],array[j]]=[array[j],array[i]];
+    }
+}
+
+function parseCSV(text){
+    const lines=text.trim().split(/\r?\n/);
+
+    if(lines.length < 2){
+        alert("CSV needs a header row and at least one flashcard.");
+        return [];
+    }
+
+    const result=[];
+
+    for(let i=1;i<lines.length;i++){
+        const parts=lines[i].split(",");
+
+        if(parts.length >= 2){
+            result.push({
+                english:parts[0].trim(),
+                albanian:parts[1].trim()
+            });
+        }
+    }
+
+    return result;
+}
+
+function loadCSV(){
+    const input=document.getElementById("csvFile");
+
+    if(!input.files.length){
+        alert("Select a CSV file first.");
+        return;
+    }
+
+    const file=input.files[0];
+
+    const reader=new FileReader();
+
+    reader.onload=function(e){
+
+        cards=parseCSV(e.target.result);
+
+        if(cards.length===0){
+            alert("No flashcards found.");
+            return;
+        }
+
+        shuffle(cards);
+
+        currentIndex=0;
+        known=0;
+        reviewed=0;
+
+        document.getElementById("studyArea").classList.remove("hidden");
+
+        renderCard();
+    };
+
+    reader.readAsText(file);
+}
+
+function getPair(card){
+
+    const mode=document.getElementById("mode").value;
+
+    if(mode==="en-al"){
+        return [card.english, card.albanian];
+    }
+
+    if(mode==="al-en"){
+        return [card.albanian, card.english];
+    }
+
+    if(Math.random() < 0.5){
+        return [card.english, card.albanian];
+    }
+
+    return [card.albanian, card.english];
+}
+
+function renderCard(){
+
+    if(cards.length===0){
+        return;
+    }
+
+    if(currentIndex >= cards.length){
+        shuffle(cards);
+        currentIndex=0;
+    }
+
+    showingBack=false;
+
+    const pair=getPair(cards[currentIndex]);
+
+    cards[currentIndex].front=pair[0];
+    cards[currentIndex].back=pair[1];
+
+    document.getElementById("cardText").textContent=
+        cards[currentIndex].front;
+
+    updateStats();
+}
+
+function flipCard(){
+
+    if(cards.length===0){
+        return;
+    }
+
+    const card=cards[currentIndex];
+
+    if(showingBack){
+        document.getElementById("cardText").textContent=card.front;
+    }else{
+        document.getElementById("cardText").textContent=card.back;
+    }
+
+    showingBack=!showingBack;
+}
+
+function knowCard(e){
+
+    e.stopPropagation();
+
+    known++;
+    reviewed++;
+
+    currentIndex++;
+
+    renderCard();
+}
+
+function studyAgain(e){
+
+    e.stopPropagation();
+
+    reviewed++;
+
+    const card=cards[currentIndex];
+
+    cards.push(card);
+
+    currentIndex++;
+
+    renderCard();
+}
+
+function updateStats(){
+
+    const percent=
+        reviewed===0
+        ? 0
+        : Math.round((known/reviewed)*100);
+
+    document.getElementById("progress").innerHTML=
+        `
+        Cards: ${cards.length}<br>
+        Reviewed: ${reviewed}<br>
+        Known: ${known}<br>
+        Score: ${percent}%
+        `;
+}
+</script>
+
+</body>
+</html>
