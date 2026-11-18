@@ -3,17 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CSV Flashcards</title>
+<title>Albanian Flashcards</title>
+
 <style>
 :root{
-    --bg:#f5f7fb;
+    --bg:#f4f6f9;
     --card:#ffffff;
     --text:#1f2937;
-    --accent:#2563eb;
-    --success:#16a34a;
-    --danger:#dc2626;
     --border:#d1d5db;
+    --blue:#2563eb;
+    --green:#16a34a;
+    --red:#dc2626;
 }
+
 @media (prefers-color-scheme: dark){
     :root{
         --bg:#111827;
@@ -22,279 +24,403 @@
         --border:#374151;
     }
 }
+
 *{
     box-sizing:border-box;
 }
+
 body{
     margin:0;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    padding:20px;
     background:var(--bg);
     color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
     display:flex;
     justify-content:center;
-    padding:20px;
 }
+
 .container{
     width:100%;
     max-width:700px;
 }
+
 h1{
     text-align:center;
 }
-.upload-section{
+
+.panel{
     background:var(--card);
-    padding:20px;
-    border-radius:12px;
     border:1px solid var(--border);
+    border-radius:12px;
+    padding:20px;
     margin-bottom:20px;
 }
-.card{
-    background:var(--card);
-    border:2px solid var(--border);
-    border-radius:16px;
-    padding:40px 20px;
-    min-height:220px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
+
+input,
+select{
+    width:100%;
+    margin-top:10px;
+    padding:12px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    font-size:16px;
+}
+
+button{
+    border:none;
+    border-radius:10px;
+    padding:14px;
+    font-size:16px;
     cursor:pointer;
-    user-select:none;
-    transition:.2s;
 }
-.card:hover{
-    transform:scale(1.01);
+
+.primary{
+    width:100%;
+    margin-top:10px;
+    background:var(--blue);
+    color:white;
 }
-.term{
-    font-size:2rem;
-    font-weight:600;
-}
+
 .controls{
     display:flex;
     gap:10px;
     margin-top:15px;
 }
-button{
-    flex:1;
-    border:none;
-    border-radius:10px;
-    padding:14px;
-    font-size:1rem;
-    cursor:pointer;
-}
+
 .know{
-    background:var(--success);
+    flex:1;
+    background:var(--green);
     color:white;
 }
+
 .again{
-    background:var(--danger);
+    flex:1;
+    background:var(--red);
     color:white;
 }
-.secondary{
-    background:var(--accent);
-    color:white;
-}
-.stats{
-    margin-top:15px;
+
+.card{
+    background:var(--card);
+    border:2px solid var(--border);
+    min-height:250px;
+    border-radius:18px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
     text-align:center;
+    padding:25px;
+    cursor:pointer;
+    user-select:none;
+}
+
+.word{
+    font-size:2rem;
+    font-weight:600;
+    line-height:1.4;
+}
+
+.stats{
+    text-align:center;
+    margin-top:20px;
     font-weight:600;
 }
+
 .hidden{
     display:none;
 }
-.mode-select{
-    margin-top:15px;
-}
-select{
-    width:100%;
-    padding:10px;
-    border-radius:8px;
-}
 </style>
 </head>
+
 <body>
 
 <div class="container">
 
-<h1>📚 CSV Flashcards</h1>
+<h1>📚 Albanian Flashcards</h1>
 
-<div class="upload-section">
-    <input type="file" id="csvFile" accept=".csv">
+<div class="panel">
 
-    <div class="mode-select">
-        <select id="mode">
-            <option value="en-al">English → Albanian</option>
-            <option value="al-en">Albanian → English</option>
-            <option value="random">Random Direction</option>
-        </select>
-    </div>
+<input type="file" id="csvFile" accept=".csv">
 
-    <button class="secondary" style="margin-top:10px" onclick="loadCSV()">
-        Load Flashcards
-    </button>
+<select id="lessonFilter">
+    <option value="all">All Lessons</option>
+</select>
+
+<button class="primary" onclick="loadCSV()">
+    Load Flashcards
+</button>
+
 </div>
 
 <div id="studyArea" class="hidden">
 
-    <div class="card" onclick="flipCard()">
-        <div id="cardText" class="term">Loading...</div>
+<div class="card" onclick="flipCard()">
+    <div id="cardText" class="word">
+        Tap Load Flashcards
     </div>
+</div>
 
-    <div class="controls">
-        <button class="again" onclick="studyAgain(event)">
-            ❌ Study Again
-        </button>
+<div class="controls">
+    <button class="again" onclick="studyAgain(event)">
+        ❌ Study Again
+    </button>
 
-        <button class="know" onclick="knowCard(event)">
-            ✅ Know It
-        </button>
-    </div>
+    <button class="know" onclick="knowCard(event)">
+        ✅ Know It
+    </button>
+</div>
 
-    <div class="stats">
-        <div id="progress"></div>
-    </div>
+<div class="stats" id="progress">
+</div>
 
 </div>
 
 </div>
 
 <script>
+
+let allCards = [];
 let cards = [];
+
 let currentIndex = 0;
-let showingBack = false;
+let showingAnswer = false;
 
 let known = 0;
 let reviewed = 0;
 
 function shuffle(array){
-    for(let i=array.length-1;i>0;i--){
-        const j=Math.floor(Math.random()*(i+1));
-        [array[i],array[j]]=[array[j],array[i]];
+
+    for(let i = array.length - 1; i > 0; i--){
+
+        const j = Math.floor(Math.random() * (i + 1));
+
+        [array[i], array[j]] =
+        [array[j], array[i]];
     }
 }
 
 function parseCSV(text){
-    const lines=text.trim().split(/\r?\n/);
 
-    if(lines.length < 2){
-        alert("CSV needs a header row and at least one flashcard.");
-        return [];
-    }
+    const lines =
+        text.trim().split(/\r?\n/);
 
-    const result=[];
+    const result = [];
 
-    for(let i=1;i<lines.length;i++){
-        const parts=lines[i].split(",");
+    for(let i = 1; i < lines.length; i++){
 
-        if(parts.length >= 2){
+        const parts =
+            lines[i].split(",");
+
+        if(parts.length >= 3){
+
             result.push({
-                english:parts[0].trim(),
-                albanian:parts[1].trim()
+
+                albanian: parts[0].trim(),
+                english: parts[1].trim(),
+                lesson: parts[2].trim()
+
             });
+
         }
     }
 
     return result;
 }
 
+function populateLessons(){
+
+    const dropdown =
+        document.getElementById(
+            "lessonFilter"
+        );
+
+    dropdown.innerHTML =
+        '<option value="all">All Lessons</option>';
+
+    const lessons =
+    [...new Set(
+        allCards.map(
+            card => card.lesson
+        )
+    )];
+
+    lessons.sort(
+        (a,b) =>
+        Number(a) - Number(b)
+    );
+
+    lessons.forEach(lesson => {
+
+        const option =
+            document.createElement("option");
+
+        option.value = lesson;
+
+        option.textContent =
+            "Lesson " + lesson;
+
+        dropdown.appendChild(option);
+    });
+}
+
 function loadCSV(){
-    const input=document.getElementById("csvFile");
+
+    const input =
+        document.getElementById(
+            "csvFile"
+        );
 
     if(!input.files.length){
-        alert("Select a CSV file first.");
+
+        alert(
+            "Please select a CSV file."
+        );
+
         return;
     }
 
-    const file=input.files[0];
+    const reader =
+        new FileReader();
 
-    const reader=new FileReader();
+    reader.onload =
+    function(event){
 
-    reader.onload=function(e){
+        allCards =
+            parseCSV(
+                event.target.result
+            );
 
-        cards=parseCSV(e.target.result);
+        if(allCards.length === 0){
 
-        if(cards.length===0){
-            alert("No flashcards found.");
+            alert(
+                "No valid flashcards found."
+            );
+
             return;
         }
 
-        shuffle(cards);
+        populateLessons();
 
-        currentIndex=0;
-        known=0;
-        reviewed=0;
-
-        document.getElementById("studyArea").classList.remove("hidden");
-
-        renderCard();
+        startSession();
     };
 
-    reader.readAsText(file);
+    reader.readAsText(
+        input.files[0]
+    );
 }
 
-function getPair(card){
+document
+.getElementById("lessonFilter")
+.addEventListener(
+"change",
+function(){
 
-    const mode=document.getElementById("mode").value;
+    if(allCards.length > 0){
 
-    if(mode==="en-al"){
-        return [card.english, card.albanian];
+        startSession();
+    }
+});
+
+function startSession(){
+
+    const selectedLesson =
+        document.getElementById(
+            "lessonFilter"
+        ).value;
+
+    if(selectedLesson === "all"){
+
+        cards =
+            [...allCards];
+    }
+    else{
+
+        cards =
+            allCards.filter(
+                card =>
+                card.lesson ===
+                selectedLesson
+            );
     }
 
-    if(mode==="al-en"){
-        return [card.albanian, card.english];
-    }
+    shuffle(cards);
 
-    if(Math.random() < 0.5){
-        return [card.english, card.albanian];
-    }
+    currentIndex = 0;
+    reviewed = 0;
+    known = 0;
 
-    return [card.albanian, card.english];
+    document
+    .getElementById(
+        "studyArea"
+    )
+    .classList.remove(
+        "hidden"
+    );
+
+    renderCard();
 }
 
 function renderCard(){
 
-    if(cards.length===0){
+    if(cards.length === 0){
+
+        document
+        .getElementById(
+            "cardText"
+        )
+        .textContent =
+        "No cards found.";
+
         return;
     }
 
     if(currentIndex >= cards.length){
+
         shuffle(cards);
-        currentIndex=0;
+
+        currentIndex = 0;
     }
 
-    showingBack=false;
+    showingAnswer = false;
 
-    const pair=getPair(cards[currentIndex]);
-
-    cards[currentIndex].front=pair[0];
-    cards[currentIndex].back=pair[1];
-
-    document.getElementById("cardText").textContent=
-        cards[currentIndex].front;
+    document
+    .getElementById(
+        "cardText"
+    )
+    .textContent =
+    cards[currentIndex]
+    .albanian;
 
     updateStats();
 }
 
 function flipCard(){
 
-    if(cards.length===0){
-        return;
+    const card =
+        cards[currentIndex];
+
+    const element =
+        document.getElementById(
+            "cardText"
+        );
+
+    if(showingAnswer){
+
+        element.textContent =
+            card.albanian;
+    }
+    else{
+
+        element.textContent =
+            card.english;
     }
 
-    const card=cards[currentIndex];
-
-    if(showingBack){
-        document.getElementById("cardText").textContent=card.front;
-    }else{
-        document.getElementById("cardText").textContent=card.back;
-    }
-
-    showingBack=!showingBack;
+    showingAnswer =
+        !showingAnswer;
 }
 
-function knowCard(e){
+function knowCard(event){
 
-    e.stopPropagation();
+    event.stopPropagation();
 
     known++;
     reviewed++;
@@ -304,15 +430,15 @@ function knowCard(e){
     renderCard();
 }
 
-function studyAgain(e){
+function studyAgain(event){
 
-    e.stopPropagation();
+    event.stopPropagation();
 
     reviewed++;
 
-    const card=cards[currentIndex];
-
-    cards.push(card);
+    cards.push(
+        cards[currentIndex]
+    );
 
     currentIndex++;
 
@@ -321,19 +447,49 @@ function studyAgain(e){
 
 function updateStats(){
 
-    const percent=
-        reviewed===0
+    const score =
+        reviewed === 0
         ? 0
-        : Math.round((known/reviewed)*100);
+        : Math.round(
+            (known / reviewed)
+            * 100
+        );
 
-    document.getElementById("progress").innerHTML=
-        `
-        Cards: ${cards.length}<br>
-        Reviewed: ${reviewed}<br>
-        Known: ${known}<br>
-        Score: ${percent}%
-        `;
+    document
+    .getElementById(
+        "progress"
+    )
+    .innerHTML =
+    `
+    Lesson:
+    ${
+        document
+        .getElementById(
+            "lessonFilter"
+        )
+        .options[
+            document
+            .getElementById(
+                "lessonFilter"
+            )
+            .selectedIndex
+        ].text
+    }
+    <br><br>
+
+    Cards: ${cards.length}
+    <br>
+
+    Reviewed: ${reviewed}
+    <br>
+
+    Known: ${known}
+    <br>
+
+    Score: ${score}%
+    `;
 }
+
 </script>
 
 </body>
