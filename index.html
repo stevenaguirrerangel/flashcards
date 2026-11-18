@@ -384,7 +384,7 @@ function parseCSV(text){
 
         const row = rows[i];
 
-        if(row.length < 3)
+        if(row.length < 2)
             continue;
 
         const albanian =
@@ -394,12 +394,11 @@ function parseCSV(text){
             row[1];
 
         const lesson =
-            row[2];
+            (row.length >= 3 && row[2]) ? row[2] : "";
 
         if(
             albanian &&
-            english &&
-            lesson
+            english
         ){
 
             result.push({
@@ -432,12 +431,23 @@ function populateLessons(){
     [...new Set(
         allCards.map(
             c => c.lesson
-        )
+        ).filter(l => l !== "")
     )];
 
+    if(lessons.length === 0){
+        dropdown.parentElement.style.display = "none";
+        return;
+    } else {
+        dropdown.parentElement.style.display = "block";
+    }
+
     lessons.sort(
-        (a,b)=>
-        Number(a)-Number(b)
+        (a,b)=>{
+            const numA = Number(a);
+            const numB = Number(b);
+            if(!isNaN(numA) && !isNaN(numB)) return numA - numB;
+            return a.localeCompare(b);
+        }
     );
 
     lessons.forEach(lesson=>{
@@ -612,7 +622,7 @@ function renderCard(){
     .getElementById(
         "lessonBadge"
     )
-    .textContent = "Lesson " + currentCard.lesson;
+    .textContent = currentCard.lesson ? "Lesson " + currentCard.lesson : "";
 
     document
     .getElementById(
@@ -670,7 +680,6 @@ function studyAgain(event){
 
     reviewed++;
 
-    // Push the missed card to the back of the queue so it reappears later
     cards.push(
         cards[currentIndex]
     );
